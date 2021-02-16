@@ -1,0 +1,67 @@
+version: '3'
+
+services:
+    # Database
+    mydb:
+        container_name: my-db
+        image: postgres
+        environment:
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=123456
+            - POSTGRES_DB=test
+            - PGDATA=/data/postgres
+            - SCHEMA=public
+        volumes:
+            - ./data/db/:/data/postgres
+            - ./data/initdb:/docker-entrypoint-initdb.d
+        ports:
+            - "5432:5432"
+        networks:
+            - backend
+        dns:
+            - 8.8.8.8
+        restart: unless-stopped
+        
+    # ApiServer service
+    apiserver:
+        build:
+            context: .
+            dockerfile: apiserver/Dockerfile
+        ports:
+            - "8080:8080"
+        restart: unless-stopped
+        container_name: apisrv
+        depends_on:
+            - mydb
+        networks:
+            - backend
+        volumes:
+            - ./data/conf:/etc/apiserver:z
+            - ./data/log/apiserver/:/var/log/apiserver:z
+
+#    # Postgres database administration
+#   db-admin:
+#       container_name: db-admin
+#       image: dpage/pgadmin4
+#       environment:
+#           PGADMIN_DEFAULT_EMAIL: my@futcity.org
+#           PGADMIN_DEFAULT_PASSWORD: 123456
+#       volumes:
+#           - pgadmin:/root/.pgadmin
+#       ports:
+#           - "7070:80"
+#       networks:
+#           - backend
+#       restart: unless-stopped
+
+volumes:
+    initdb:
+    data:
+#    pgadmin:
+
+networks:
+    backend:
+        driver: bridge
+        ipam:
+            config:
+                - subnet: 172.16.57.0/24
